@@ -14,12 +14,12 @@ var Executor = function() {
 
 util.inherits(Executor, events.EventEmitter);
 
-Executor.prototype.exec = function(kwargs) {
-  kwargs = kwargs || {};
+Executor.prototype.exec = function(opts) {
+  opts = opts || {};
   var self = this;
   var deferred = defer();
 
-  dbx.enabled && dbx(' + execute command with options: %s', JSON.stringify(kwargs));
+  dbx.enabled && dbx(' + execute command with options: %s', JSON.stringify(opts));
 
   // Prepare command name & args
   if (!misc.isFunction(this.commandName)) {
@@ -41,31 +41,31 @@ Executor.prototype.exec = function(kwargs) {
   // Prepare the process options
   var options = {};
   options.env = process.env;
-  if (kwargs.cwd) options.cwd = kwargs.cwd;
-  if (kwargs.shell != undefined) options.shell = kwargs.shell;
+  if (opts.cwd) options.cwd = opts.cwd;
+  if (opts.shell != undefined) options.shell = opts.shell;
 
   // execute the command
-  var output = '';
+  var text = '';
   var child = exec.spawn(commandName, commandArgs, options);
 
-  child.stdout.on('data', function(data) {
-    output += data.toString();
-    self.emit('stdout', data);
+  child.stdout.on('data', function(chunk) {
+    text += chunk.toString();
+    self.emit('stdout', chunk);
   });
 
-  child.stderr.on('data', function(data) {
-    output += data.toString();
-    self.emit('stderr', data);
+  child.stderr.on('data', function(chunk) {
+    text += chunk.toString();
+    self.emit('stderr', chunk);
   });
 
   child.on('close', function(code) {
     self.emit('close', code);
-    deferred.resolve({code: code, output: output});
+    deferred.resolve({code: code, text: text});
   });
 
   child.on('exit', function(code) {
     if (code !== 0) {
-      deferred.reject(new Error(output, code));
+      deferred.reject(new Error(text, code));
     }
   });
 
@@ -91,10 +91,10 @@ Executor.extend = function(kwargs, context) {
   return Impl;
 }
 
-Executor.run = function(_name, _args) {
+Executor.run = function(_name, _args, _opts) {
   var executor = Executor.extend({
     name: _name,
     args: _args
   });
-  return executor.exec();
+  return executor.exec(_opts);
 }
