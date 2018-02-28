@@ -6,6 +6,7 @@ var events = require('events');
 var util = require('util');
 var defer = require('./defer');
 var dbx = require('./pinbug')('shjs:executor');
+var misc = require('./misc');
 
 var Executor = function() {
   events.EventEmitter.call(this);
@@ -21,15 +22,21 @@ Executor.prototype.exec = function(kwargs) {
   dbx.enabled && dbx(' + execute command with options: %s', JSON.stringify(kwargs));
 
   // Prepare command name & args
-  if (typeof(this.commandName) !== 'function') {
-    return deferred.reject(new Error('method commandName() should be implemented', -1));
+  if (!misc.isFunction(this.commandName)) {
+    return deferred.reject(new Error('method commandName() should be implemented', -10));
   }
   var commandName = this.commandName();
+  if (!misc.isString(commandName)) {
+    return deferred.reject(new Error('method commandName() must return a string', -11));
+  }
 
-  if (typeof(this.commandArgs) !== 'function') {
-    return deferred.reject(new Error('method commandArgs() should be implemented', -2));
+  if (!misc.isFunction(this.commandArgs)) {
+    return deferred.reject(new Error('method commandArgs() should be implemented', -20));
   }
   var commandArgs = this.commandArgs();
+  if (!misc.isArray(commandArgs)) {
+    return deferred.reject(new Error('method commandArgs() must return an array', -21));
+  }
 
   // Prepare the process options
   var options = {};

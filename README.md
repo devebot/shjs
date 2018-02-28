@@ -1,3 +1,3 @@
 # shjs
 
-> Node.js Shell Wrapper
+> Node.js shell command wrapper
