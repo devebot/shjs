@@ -10,6 +10,36 @@ var misc = require('./misc');
 
 var Executor = function() {
   events.EventEmitter.call(this);
+
+  var __parsers = [];
+
+  this.addParser = function(f) {
+    if (typeof f === 'function') {
+      __parsers.push(f);
+    }
+    return this;
+  }
+
+  this.removeParser = function(f) {
+    var pos = __parsers.indexOf(f);
+    if (pos >= 0) {
+      __parsers.splice(pos, 1);
+    }
+    return this;
+  }
+
+  this.parse = function(text) {
+    if (typeof text !== 'string') return null;
+    return __parsers.reduce(function(accum, parser) {
+      try {
+        var r = parser(text, accum);
+        if (r && typeof r === 'object') {
+          accum = misc._assign(accum, r);
+        }
+      } catch (err) {}
+      return accum;
+    }, {});
+  }
 };
 
 util.inherits(Executor, events.EventEmitter);
@@ -22,20 +52,20 @@ Executor.prototype.exec = function(opts) {
   dbx.enabled && dbx(' + execute command with options: %s', JSON.stringify(opts));
 
   // Prepare command name & args
-  if (!misc.isFunction(this.commandName)) {
-    return deferred.reject(new Error('method commandName() should be implemented', -10));
+  if (!misc.isFunction(this.getCmdName)) {
+    return deferred.reject(new Error('getCmdName() must be implemented', -10));
   }
-  var commandName = this.commandName();
+  var commandName = this.getCmdName();
   if (!misc.isString(commandName)) {
-    return deferred.reject(new Error('method commandName() must return a string', -11));
+    return deferred.reject(new Error('getCmdName() must return a string', -11));
   }
 
-  if (!misc.isFunction(this.commandArgs)) {
-    return deferred.reject(new Error('method commandArgs() should be implemented', -20));
+  if (!misc.isFunction(this.getCmdArgs)) {
+    return deferred.reject(new Error('getCmdArgs() must be implemented', -20));
   }
-  var commandArgs = this.commandArgs();
+  var commandArgs = this.getCmdArgs();
   if (!misc.isArray(commandArgs)) {
-    return deferred.reject(new Error('method commandArgs() must return an array', -21));
+    return deferred.reject(new Error('getCmdArgs() must return an array', -21));
   }
 
   // Prepare the process options
@@ -60,7 +90,7 @@ Executor.prototype.exec = function(opts) {
 
   child.on('close', function(code) {
     self.emit('close', code);
-    deferred.resolve({code: code, text: text});
+    deferred.resolve({code: code, text: text, data: self.parse(text)});
   });
 
   child.on('exit', function(code) {
@@ -75,15 +105,15 @@ Executor.prototype.exec = function(opts) {
 
 module.exports = Executor;
 
-Executor.extend = function(kwargs, context) {
+Executor.extend = function(kwargs) {
   var Impl = function() {
-    Executor.call(this, context);
+    Executor.call(this);
 
-    this.commandName = function() {
+    this.getCmdName = function() {
       return kwargs.name;
     }
 
-    this.commandArgs = function() {
+    this.getCmdArgs = function() {
       return kwargs.args;
     }
   }
@@ -92,9 +122,10 @@ Executor.extend = function(kwargs, context) {
 }
 
 Executor.run = function(_name, _args, _opts) {
-  var executor = Executor.extend({
+  var Command = Executor.extend({
     name: _name,
     args: _args
   });
-  return executor.exec(_opts);
+  var command = new Command();
+  return command.exec(_opts);
 }
