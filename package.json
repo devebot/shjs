@@ -1,6 +1,6 @@
 {
   "name": "shjs",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Node.js shell command wrapper",
   "main": "lib/index.js",
   "directories": {
@@ -17,7 +17,11 @@
     "pretest": "npm run build",
     "test": "mocha --recursive test/**/*-test.js"
   },
-  "author": "devebot",
+  "author": {
+    "name": "Devebot",
+    "email": "contact@devebot.com",
+    "url": "https://github.com/devebot"
+  },
   "license": "MIT",
   "dependencies": {},
   "devDependencies": {

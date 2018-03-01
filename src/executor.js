@@ -1,5 +1,6 @@
 'use strict';
 
+var assert = require('assert');
 var exec = require('child_process');
 var events = require('events');
 var util = require('util');
@@ -10,26 +11,42 @@ var misc = require('./misc');
 var Executor = function() {
   events.EventEmitter.call(this);
 
-  var __parsers = [];
+  var __store = {};
 
-  this.addParser = function(f) {
-    if (typeof f === 'function') {
-      __parsers.push(f);
-    }
-    return this;
+  this.getStore = function(action) {
+    assert.ok(typeof action === 'function');
+    return action(__store);
   }
+};
 
-  this.removeParser = function(f) {
-    var pos = __parsers.indexOf(f);
-    if (pos >= 0) {
-      __parsers.splice(pos, 1);
-    }
-    return this;
+util.inherits(Executor, events.EventEmitter);
+
+Executor.prototype.addParser = function(f) {
+  if (typeof f === 'function') {
+    this.getStore(function(__store) {
+      __store.parsers = __store.parsers || [];
+      __store.parsers.push(f);
+    });
   }
+  return this;
+}
 
-  this.parse = function(text) {
-    if (typeof text !== 'string') return null;
-    return __parsers.reduce(function(accum, parser) {
+Executor.prototype.removeParser = function(f) {
+  var pos = __parsers.indexOf(f);
+  if (pos >= 0) {
+    this.getStore(function(__store) {
+      __store.parsers = __store.parsers || [];
+      __store.parsers.splice(pos, 1);
+    });
+  }
+  return this;
+}
+
+Executor.prototype.parse = function(text) {
+  if (typeof text !== 'string') return null;
+  return this.getStore(function(__store) {
+    __store.parsers = __store.parsers || [];
+    return __store.parsers.reduce(function(accum, parser) {
       try {
         var r = parser(text, accum);
         if (r && typeof r === 'object') {
@@ -38,10 +55,8 @@ var Executor = function() {
       } catch (err) {}
       return accum;
     }, {});
-  }
-};
-
-util.inherits(Executor, events.EventEmitter);
+  });
+}
 
 Executor.prototype.exec = function(opts) {
   opts = opts || {};
