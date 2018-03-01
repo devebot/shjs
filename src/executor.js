@@ -48,7 +48,7 @@ Executor.prototype.exec = function(opts) {
   var self = this;
   var deferred = defer();
 
-  dbx.enabled && dbx(' + execute command with options: %s', JSON.stringify(opts));
+  dbx.enabled && dbx(' - execute command with options: %s', JSON.stringify(opts));
 
   // Prepare command name & args
   if (!misc.isFunction(this.getCmdName)) {
@@ -105,6 +105,7 @@ Executor.prototype.exec = function(opts) {
 module.exports = Executor;
 
 Executor.extend = function(kwargs) {
+  dbx.enabled && dbx(' - extend(%s)', JSON.stringify(kwargs));
   var Impl = function() {
     Executor.call(this);
 
@@ -121,6 +122,8 @@ Executor.extend = function(kwargs) {
 }
 
 Executor.run = function(_name, _args, _opts) {
+  dbx.enabled && dbx(' - run(%s, %s, %s)', _name,
+    JSON.stringify(_args), JSON.stringify(_opts));
   var Command = Executor.extend({
     name: _name,
     args: _args

@@ -31,4 +31,5 @@ misc._pick = function(r, fields) {
   });
   return o;
 }
+
 module.exports = misc;
