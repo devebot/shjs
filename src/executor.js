@@ -1,6 +1,5 @@
 'use strict';
 
-var Promise = require('bluebird');
 var exec = require('child_process');
 var events = require('events');
 var util = require('util');
