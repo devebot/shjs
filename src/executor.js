@@ -1,12 +1,14 @@
 'use strict';
 
-let assert = require('assert');
-let child_process = require('child_process');
-let events = require('events');
-let util = require('util');
-let dbx = require('./pinbug')('shjs:executor');
-let misc = require('./misc');
-let Promise = require('./promise');
+import assert from 'assert';
+import child_process from 'child_process';
+import events from 'events';
+import util from 'util';
+import pinbug from './pinbug';
+import misc from './misc';
+import { default as Promise, timeoutify } from './promise';
+
+let dbx = pinbug('shjs:executor');
 
 let Executor = function() {
   events.EventEmitter.call(this);
@@ -87,9 +89,11 @@ Executor.prototype.exec = function(opts) {
   if (opts.cwd) options.cwd = opts.cwd;
   if (opts.shell != undefined) options.shell = opts.shell;
 
+  // Check the timeout option
+  let timeout = misc.isNumber(opts.timeout) ? opts.timeout : 0;
+
   // execute the command
-  dbx.enabled && dbx(' - return the promise object');
-  return new Promise(function(onResolved, onRejected) {
+  let p = new Promise(function(onResolved, onRejected) {
     let text = '';
     let child = child_process.spawn(commandName, commandArgs, options);
 
@@ -114,6 +118,10 @@ Executor.prototype.exec = function(opts) {
       }
     });
   });
+
+  dbx.enabled && dbx(' - return the promise object');
+  if (timeout > 0) return timeoutify(p, timeout);
+  return p;
 }
 
 Executor.extend = function(kwargs) {

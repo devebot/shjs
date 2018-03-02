@@ -1,4 +1,4 @@
-let misc = module.exports = {};
+let misc = {};
 
 misc.isFunction = function(f) {
   return typeof(f) === 'function';
@@ -10,6 +10,10 @@ misc.isArray = function(a) {
 
 misc.isObject = function(o) {
   return o && typeof(o) === 'object' && !(o instanceof Array);
+}
+
+misc.isNumber = function(n) {
+  return typeof n === 'number';
 }
 
 misc.isString = function(s) {
@@ -31,3 +35,5 @@ misc._pick = function(r, fields) {
   });
   return o;
 }
+
+export default misc;

@@ -1,3 +1,3 @@
-module.exports = {
-  Executor: require('./executor')
-}
+import Executor from './executor';
+
+module.exports = { Executor }

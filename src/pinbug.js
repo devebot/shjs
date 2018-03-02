@@ -19,4 +19,4 @@ let pinbug = function(pkgName) {
   return debug(pkgName);
 };
 
-module.exports = pinbug;
+export default pinbug;
