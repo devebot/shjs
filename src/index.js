@@ -1,3 +1,1 @@
-import Executor from './executor';
-
-module.exports = { Executor }
+export { default as Executor } from './executor';

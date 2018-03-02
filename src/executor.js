@@ -152,4 +152,4 @@ Executor.run = function(_name, _args, _opts) {
   return command.exec(_opts);
 }
 
-module.exports = Executor;
+export default Executor;
