@@ -1,12 +1,12 @@
 'use strict';
 
 var assert = require('assert');
-var exec = require('child_process');
+var child_process = require('child_process');
 var events = require('events');
 var util = require('util');
-var defer = require('./defer');
 var dbx = require('./pinbug')('shjs:executor');
 var misc = require('./misc');
+var Promise = require('./promise');
 
 var Executor = function() {
   events.EventEmitter.call(this);
@@ -61,25 +61,24 @@ Executor.prototype.parse = function(text) {
 Executor.prototype.exec = function(opts) {
   opts = opts || {};
   var self = this;
-  var deferred = defer();
 
   dbx.enabled && dbx(' - execute command with options: %s', JSON.stringify(opts));
 
   // Prepare command name & args
   if (!misc.isFunction(this.getCmdName)) {
-    return deferred.reject(new Error('getCmdName() must be implemented', -10));
+    return Promise.reject(new Error('getCmdName() must be implemented', -10));
   }
   var commandName = this.getCmdName();
   if (!misc.isString(commandName)) {
-    return deferred.reject(new Error('getCmdName() must return a string', -11));
+    return Promise.reject(new Error('getCmdName() must return a string', -11));
   }
 
   if (!misc.isFunction(this.getCmdArgs)) {
-    return deferred.reject(new Error('getCmdArgs() must be implemented', -20));
+    return Promise.reject(new Error('getCmdArgs() must be implemented', -20));
   }
   var commandArgs = this.getCmdArgs();
   if (!misc.isArray(commandArgs)) {
-    return deferred.reject(new Error('getCmdArgs() must return an array', -21));
+    return Promise.reject(new Error('getCmdArgs() must return an array', -21));
   }
 
   // Prepare the process options
@@ -89,32 +88,32 @@ Executor.prototype.exec = function(opts) {
   if (opts.shell != undefined) options.shell = opts.shell;
 
   // execute the command
-  var text = '';
-  var child = exec.spawn(commandName, commandArgs, options);
-
-  child.stdout.on('data', function(chunk) {
-    text += chunk.toString();
-    self.emit('stdout', chunk);
-  });
-
-  child.stderr.on('data', function(chunk) {
-    text += chunk.toString();
-    self.emit('stderr', chunk);
-  });
-
-  child.on('close', function(code) {
-    self.emit('close', code);
-    deferred.resolve({code: code, text: text, data: self.parse(text)});
-  });
-
-  child.on('exit', function(code) {
-    if (code !== 0) {
-      deferred.reject(new Error(text, code));
-    }
-  });
-
   dbx.enabled && dbx(' - return the promise object');
-  return deferred.promise;
+  return new Promise(function(onResolved, onRejected) {
+    var text = '';
+    var child = child_process.spawn(commandName, commandArgs, options);
+
+    child.stdout.on('data', function(chunk) {
+      text += chunk.toString();
+      self.emit('stdout', chunk);
+    });
+
+    child.stderr.on('data', function(chunk) {
+      text += chunk.toString();
+      self.emit('stderr', chunk);
+    });
+
+    child.on('close', function(code) {
+      self.emit('close', code);
+      onResolved({code: code, text: text, data: self.parse(text)});
+    });
+
+    child.on('exit', function(code) {
+      if (code !== 0) {
+        onRejected(new Error(text, code));
+      }
+    });
+  });
 }
 
 module.exports = Executor;

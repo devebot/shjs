@@ -1,4 +1,4 @@
-var misc = {};
+var misc = module.exports = {};
 
 misc.isFunction = function(f) {
   return typeof(f) === 'function';
@@ -31,5 +31,3 @@ misc._pick = function(r, fields) {
   });
   return o;
 }
-
-module.exports = misc;
