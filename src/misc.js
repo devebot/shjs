@@ -1,4 +1,4 @@
-var misc = module.exports = {};
+let misc = module.exports = {};
 
 misc.isFunction = function(f) {
   return typeof(f) === 'function';
@@ -22,7 +22,7 @@ misc._assign = function() {
 
 misc._pick = function(r, fields) {
   if (!(r && typeof r === 'object')) return {};
-  var o = {};
+  let o = {};
   fields = fields || Object.keys(r);
   fields.forEach(function(k) {
     if (r.hasOwnProperty(k)) {

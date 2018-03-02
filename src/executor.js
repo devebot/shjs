@@ -1,20 +1,20 @@
 'use strict';
 
-var assert = require('assert');
-var child_process = require('child_process');
-var events = require('events');
-var util = require('util');
-var dbx = require('./pinbug')('shjs:executor');
-var misc = require('./misc');
-var Promise = require('./promise');
+let assert = require('assert');
+let child_process = require('child_process');
+let events = require('events');
+let util = require('util');
+let dbx = require('./pinbug')('shjs:executor');
+let misc = require('./misc');
+let Promise = require('./promise');
 
-var Executor = function() {
+let Executor = function() {
   events.EventEmitter.call(this);
 
-  var __store = {};
+  let __store = {};
 
   this.getStore = function(action) {
-    assert.ok(typeof action === 'function');
+    assert.ok(misc.isFunction(action));
     return action(__store);
   }
 };
@@ -22,7 +22,7 @@ var Executor = function() {
 util.inherits(Executor, events.EventEmitter);
 
 Executor.prototype.addParser = function(f) {
-  if (typeof f === 'function') {
+  if (misc.isFunction(f)) {
     this.getStore(function(__store) {
       __store.parsers = __store.parsers || [];
       __store.parsers.push(f);
@@ -32,7 +32,7 @@ Executor.prototype.addParser = function(f) {
 }
 
 Executor.prototype.removeParser = function(f) {
-  var pos = __parsers.indexOf(f);
+  let pos = __parsers.indexOf(f);
   if (pos >= 0) {
     this.getStore(function(__store) {
       __store.parsers = __store.parsers || [];
@@ -43,13 +43,13 @@ Executor.prototype.removeParser = function(f) {
 }
 
 Executor.prototype.parse = function(text) {
-  if (typeof text !== 'string') return null;
+  if (!misc.isString(text)) return null;
   return this.getStore(function(__store) {
     __store.parsers = __store.parsers || [];
     return __store.parsers.reduce(function(accum, parser) {
       try {
-        var r = parser(text, accum);
-        if (r && typeof r === 'object') {
+        let r = parser(text, accum);
+        if (misc.isObject(r) || misc.isArray(r)) {
           accum = misc._assign(accum, r);
         }
       } catch (err) {}
@@ -60,7 +60,7 @@ Executor.prototype.parse = function(text) {
 
 Executor.prototype.exec = function(opts) {
   opts = opts || {};
-  var self = this;
+  let self = this;
 
   dbx.enabled && dbx(' - execute command with options: %s', JSON.stringify(opts));
 
@@ -68,7 +68,7 @@ Executor.prototype.exec = function(opts) {
   if (!misc.isFunction(this.getCmdName)) {
     return Promise.reject(new Error('getCmdName() must be implemented', -10));
   }
-  var commandName = this.getCmdName();
+  let commandName = this.getCmdName();
   if (!misc.isString(commandName)) {
     return Promise.reject(new Error('getCmdName() must return a string', -11));
   }
@@ -76,13 +76,13 @@ Executor.prototype.exec = function(opts) {
   if (!misc.isFunction(this.getCmdArgs)) {
     return Promise.reject(new Error('getCmdArgs() must be implemented', -20));
   }
-  var commandArgs = this.getCmdArgs();
+  let commandArgs = this.getCmdArgs();
   if (!misc.isArray(commandArgs)) {
     return Promise.reject(new Error('getCmdArgs() must return an array', -21));
   }
 
   // Prepare the process options
-  var options = {};
+  let options = {};
   options.env = process.env;
   if (opts.cwd) options.cwd = opts.cwd;
   if (opts.shell != undefined) options.shell = opts.shell;
@@ -90,8 +90,8 @@ Executor.prototype.exec = function(opts) {
   // execute the command
   dbx.enabled && dbx(' - return the promise object');
   return new Promise(function(onResolved, onRejected) {
-    var text = '';
-    var child = child_process.spawn(commandName, commandArgs, options);
+    let text = '';
+    let child = child_process.spawn(commandName, commandArgs, options);
 
     child.stdout.on('data', function(chunk) {
       text += chunk.toString();
@@ -116,11 +116,9 @@ Executor.prototype.exec = function(opts) {
   });
 }
 
-module.exports = Executor;
-
 Executor.extend = function(kwargs) {
   dbx.enabled && dbx(' - extend(%s)', JSON.stringify(kwargs));
-  var Impl = function() {
+  let Impl = function() {
     Executor.call(this);
 
     this.getCmdName = function() {
@@ -138,10 +136,12 @@ Executor.extend = function(kwargs) {
 Executor.run = function(_name, _args, _opts) {
   dbx.enabled && dbx(' - run(%s, %s, %s)', _name,
     JSON.stringify(_args), JSON.stringify(_opts));
-  var Command = Executor.extend({
+  let Command = Executor.extend({
     name: _name,
     args: _args
   });
-  var command = new Command();
+  let command = new Command();
   return command.exec(_opts);
 }
+
+module.exports = Executor;
