@@ -34,13 +34,13 @@ Executor.prototype.addParser = function(f) {
 }
 
 Executor.prototype.removeParser = function(f) {
-  let pos = __parsers.indexOf(f);
-  if (pos >= 0) {
-    this.getStore(function(__store) {
-      __store.parsers = __store.parsers || [];
-      __store.parsers.splice(pos, 1);
-    });
-  }
+  this.getStore(function(__store) {
+    let pos = __store.parsers.indexOf(f);
+    if (pos >= 0) {
+        __store.parsers = __store.parsers || [];
+        __store.parsers.splice(pos, 1);
+    }
+  });
   return this;
 }
 
@@ -113,9 +113,9 @@ Executor.prototype.exec = function(opts) {
     });
 
     child.on('exit', function(code) {
-      if (code !== 0) {
-        onRejected(new Error(text, code));
-      }
+      self.emit('exit', code);
+      if (code === 0) return;
+      onRejected(new Error(text, code));
     });
   });
 
